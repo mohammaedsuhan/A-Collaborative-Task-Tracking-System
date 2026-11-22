@@ -16,7 +16,18 @@ const attachmentParams = z.object({ taskId: id, attachmentId: id });
 
 /** Executable / script types are refused outright. Everything else is stored and served as a download. */
 const BLOCKED_EXTENSIONS = new Set([
-  '.exe', '.dll', '.bat', '.cmd', '.com', '.msi', '.scr', '.sh', '.ps1', '.vbs', '.jar', '.apk',
+  '.exe',
+  '.dll',
+  '.bat',
+  '.cmd',
+  '.com',
+  '.msi',
+  '.scr',
+  '.sh',
+  '.ps1',
+  '.vbs',
+  '.jar',
+  '.apk',
 ]);
 
 /** Attachments on a task. Mounted at /api/tasks/:taskId/attachments. */
@@ -31,7 +42,11 @@ function createAttachmentsRouter(db, authenticate, access, notifier) {
       destination: config.uploadDir,
       // Random on-disk name: the client-supplied name is never used to build a path.
       filename: (_req, file, cb) => {
-        const ext = path.extname(file.originalname).toLowerCase().replace(/[^.a-z0-9]/g, '').slice(0, 10);
+        const ext = path
+          .extname(file.originalname)
+          .toLowerCase()
+          .replace(/[^.a-z0-9]/g, '')
+          .slice(0, 10);
         cb(null, `${crypto.randomUUID()}${ext}`);
       },
     }),
@@ -74,36 +89,30 @@ function createAttachmentsRouter(db, authenticate, access, notifier) {
   };
 
   // User story 10: upload an attachment (multipart/form-data, field name "file")
-  router.post(
-    '/',
-    validate({ params: taskParams }),
-    authoriseTask,
-    upload.single('file'),
-    (req, res) => {
-      if (!req.file) throw badRequest('No file uploaded: send multipart/form-data with a "file" field');
-      const { task } = access.requireTaskAccess(req.valid.params.taskId, req.user.id);
+  router.post('/', validate({ params: taskParams }), authoriseTask, upload.single('file'), (req, res) => {
+    if (!req.file) throw badRequest('No file uploaded: send multipart/form-data with a "file" field');
+    const { task } = access.requireTaskAccess(req.valid.params.taskId, req.user.id);
 
-      const { lastInsertRowid } = db
-        .prepare(
-          `INSERT INTO attachments (task_id, user_id, original_name, stored_name, mime_type, size_bytes)
+    const { lastInsertRowid } = db
+      .prepare(
+        `INSERT INTO attachments (task_id, user_id, original_name, stored_name, mime_type, size_bytes)
            VALUES (?, ?, ?, ?, ?, ?)`
-        )
-        .run(task.id, req.user.id, req.file.originalname, req.file.filename, req.file.mimetype, req.file.size);
+      )
+      .run(task.id, req.user.id, req.file.originalname, req.file.filename, req.file.mimetype, req.file.size);
 
-      for (const userId of new Set([task.assignee_id, task.creator_id])) {
-        notifier.notify({
-          userId,
-          actorId: req.user.id,
-          type: 'attachment_added',
-          message: `${req.user.name} attached "${req.file.originalname}" to "${task.title}"`,
-          taskId: task.id,
-          teamId: task.team_id,
-        });
-      }
-      const row = db.prepare(`${SELECT} WHERE a.id = ?`).get(lastInsertRowid);
-      res.status(201).json({ attachment: present(row) });
+    for (const userId of new Set([task.assignee_id, task.creator_id])) {
+      notifier.notify({
+        userId,
+        actorId: req.user.id,
+        type: 'attachment_added',
+        message: `${req.user.name} attached "${req.file.originalname}" to "${task.title}"`,
+        taskId: task.id,
+        teamId: task.team_id,
+      });
     }
-  );
+    const row = db.prepare(`${SELECT} WHERE a.id = ?`).get(lastInsertRowid);
+    res.status(201).json({ attachment: present(row) });
+  });
 
   router.get('/', validate({ params: taskParams }), (req, res) => {
     const { task } = access.requireTaskAccess(req.valid.params.taskId, req.user.id);

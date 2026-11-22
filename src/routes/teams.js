@@ -95,7 +95,9 @@ function createTeamsRouters(db, authenticate, access, notifier) {
     requireOwner(membership);
 
     const changes = req.valid.body;
-    const assignments = Object.keys(changes).map((c) => `${c} = @${c}`).join(', ');
+    const assignments = Object.keys(changes)
+      .map((c) => `${c} = @${c}`)
+      .join(', ');
     db.prepare(`UPDATE teams SET ${assignments} WHERE id = @id`).run({ ...changes, id: team.id });
     res.json({ team: access.requireMember(team.id, req.user.id).team });
   });
@@ -115,7 +117,8 @@ function createTeamsRouters(db, authenticate, access, notifier) {
     const { team, membership } = access.requireMember(teamId, req.user.id);
 
     if (userId !== req.user.id) requireOwner(membership);
-    if (userId === team.owner_id) throw badRequest('The team owner cannot be removed; delete the team instead');
+    if (userId === team.owner_id)
+      throw badRequest('The team owner cannot be removed; delete the team instead');
     if (!access.isMember(teamId, userId)) throw notFound('That user is not a member of this team');
 
     db.transaction(() => {

@@ -10,7 +10,10 @@ const { passwordSchema, BCRYPT_ROUNDS } = require('./auth');
 const updateProfileSchema = z
   .object({
     name: z.string().trim().min(1).max(100),
-    email: z.email('Invalid email address').max(254).transform((e) => e.toLowerCase()),
+    email: z
+      .email('Invalid email address')
+      .max(254)
+      .transform((e) => e.toLowerCase()),
     bio: z.string().trim().max(500).nullable(),
   })
   .partial()
@@ -61,10 +64,9 @@ function createUsersRouter(db, authenticate) {
     if (!bcrypt.compareSync(current, hash)) throw unauthorized('Current password is incorrect');
     if (current === next) throw badRequest('New password must differ from the current one');
 
-    db.prepare("UPDATE users SET password_hash = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now') WHERE id = ?").run(
-      bcrypt.hashSync(next, BCRYPT_ROUNDS),
-      req.user.id
-    );
+    db.prepare(
+      "UPDATE users SET password_hash = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now') WHERE id = ?"
+    ).run(bcrypt.hashSync(next, BCRYPT_ROUNDS), req.user.id);
     res.status(204).end();
   });
 

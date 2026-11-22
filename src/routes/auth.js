@@ -22,7 +22,10 @@ const password = z
 
 const registerSchema = z.object({
   name: z.string().trim().min(1, 'Name is required').max(100),
-  email: z.email('Invalid email address').max(254).transform((e) => e.toLowerCase()),
+  email: z
+    .email('Invalid email address')
+    .max(254)
+    .transform((e) => e.toLowerCase()),
   password,
 });
 
@@ -38,9 +41,7 @@ function createAuthRouter(db, authenticate) {
     'INSERT INTO users (email, name, password_hash) VALUES (@email, @name, @hash)'
   );
   const findByEmail = db.prepare('SELECT * FROM users WHERE email = ?');
-  const findById = db.prepare(
-    'SELECT id, email, name, bio, created_at FROM users WHERE id = ?'
-  );
+  const findById = db.prepare('SELECT id, email, name, bio, created_at FROM users WHERE id = ?');
   const revoke = db.prepare('INSERT OR IGNORE INTO revoked_tokens (jti, expires_at) VALUES (?, ?)');
   const purgeExpired = db.prepare('DELETE FROM revoked_tokens WHERE expires_at < ?');
 

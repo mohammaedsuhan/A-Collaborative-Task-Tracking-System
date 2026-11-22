@@ -23,7 +23,12 @@ const SORTS = {
 const csvEnum = (values) =>
   z
     .string()
-    .transform((s) => s.split(',').map((v) => v.trim()).filter(Boolean))
+    .transform((s) =>
+      s
+        .split(',')
+        .map((v) => v.trim())
+        .filter(Boolean)
+    )
     .pipe(z.array(z.enum(values)).min(1));
 
 const createSchema = z.object({
@@ -58,7 +63,10 @@ const listSchema = z.object({
   q: z.string().trim().min(1).max(200).optional(),
   due_before: isoDate.optional(),
   due_after: isoDate.optional(),
-  overdue: z.enum(['true', 'false']).transform((v) => v === 'true').optional(),
+  overdue: z
+    .enum(['true', 'false'])
+    .transform((v) => v === 'true')
+    .optional(),
   sort_by: z.enum(Object.keys(SORTS)).default('created_at'),
   order: z.enum(['asc', 'desc']).default('desc'),
   page: z.coerce.number().int().min(1).default(1),
@@ -114,7 +122,7 @@ function createTasksRouter(db, authenticate, access, notifier) {
   /** The assignee must belong to the same team as the task. */
   function assertAssignable(teamId, assigneeId) {
     if (assigneeId != null && !access.isMember(teamId, assigneeId)) {
-      throw badRequest('Assignee must be a member of the task\'s team');
+      throw badRequest("Assignee must be a member of the task's team");
     }
   }
 
@@ -215,12 +223,23 @@ function createTasksRouter(db, authenticate, access, notifier) {
     const where = ['t.team_id IN (SELECT team_id FROM team_members WHERE user_id = @me)'];
     const params = { me: req.user.id };
 
-    if (f.team_id) { where.push('t.team_id = @team_id'); params.team_id = f.team_id; }
-    if (f.assignee === 'me') { where.push('t.assignee_id = @me'); }
-    else if (f.assignee === 'unassigned') { where.push('t.assignee_id IS NULL'); }
-    else if (f.assignee) { where.push('t.assignee_id = @assignee'); params.assignee = f.assignee; }
+    if (f.team_id) {
+      where.push('t.team_id = @team_id');
+      params.team_id = f.team_id;
+    }
+    if (f.assignee === 'me') {
+      where.push('t.assignee_id = @me');
+    } else if (f.assignee === 'unassigned') {
+      where.push('t.assignee_id IS NULL');
+    } else if (f.assignee) {
+      where.push('t.assignee_id = @assignee');
+      params.assignee = f.assignee;
+    }
 
-    for (const [key, column] of [['status', 't.status'], ['priority', 't.priority']]) {
+    for (const [key, column] of [
+      ['status', 't.status'],
+      ['priority', 't.priority'],
+    ]) {
       if (f[key]) {
         const names = f[key].map((value, i) => {
           params[`${key}${i}`] = value;
@@ -234,8 +253,14 @@ function createTasksRouter(db, authenticate, access, notifier) {
       where.push("(t.title LIKE @q ESCAPE '\\' OR t.description LIKE @q ESCAPE '\\')");
       params.q = likePattern(f.q);
     }
-    if (f.due_before) { where.push('t.due_date <= @due_before'); params.due_before = f.due_before; }
-    if (f.due_after) { where.push('t.due_date >= @due_after'); params.due_after = f.due_after; }
+    if (f.due_before) {
+      where.push('t.due_date <= @due_before');
+      params.due_before = f.due_before;
+    }
+    if (f.due_after) {
+      where.push('t.due_date >= @due_after');
+      params.due_after = f.due_after;
+    }
     if (f.overdue) {
       where.push("t.due_date < @now AND t.status != 'completed'");
       params.now = nowIso();
@@ -247,9 +272,7 @@ function createTasksRouter(db, authenticate, access, notifier) {
     const orderBy = `${nullsLast}${SORTS[f.sort_by]} ${dir}, t.id ${dir}`;
     const whereSql = where.join(' AND ');
 
-    const { total } = db
-      .prepare(`SELECT COUNT(*) AS total FROM tasks t WHERE ${whereSql}`)
-      .get(params);
+    const { total } = db.prepare(`SELECT COUNT(*) AS total FROM tasks t WHERE ${whereSql}`).get(params);
     const rows = db
       .prepare(`${TASK_SELECT} WHERE ${whereSql} ORDER BY ${orderBy} LIMIT @limit OFFSET @offset`)
       .all({ ...params, limit: f.limit, offset: (f.page - 1) * f.limit });

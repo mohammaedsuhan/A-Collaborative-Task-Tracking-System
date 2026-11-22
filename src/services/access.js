@@ -8,9 +8,7 @@ const { forbidden, notFound } = require('../utils/errors');
  */
 function createAccess(db) {
   const getTeam = db.prepare('SELECT * FROM teams WHERE id = ?');
-  const getMembership = db.prepare(
-    'SELECT * FROM team_members WHERE team_id = ? AND user_id = ?'
-  );
+  const getMembership = db.prepare('SELECT * FROM team_members WHERE team_id = ? AND user_id = ?');
   const getTask = db.prepare('SELECT * FROM tasks WHERE id = ?');
 
   /** Returns { team, membership } or throws 404/403. */

@@ -38,7 +38,11 @@ function createAiService({ apiKey, model, fetchImpl = globalThis.fetch, logger =
     });
     if (!res.ok) throw new Error(`Anthropic API responded ${res.status}`);
     const data = await res.json();
-    const text = (data.content ?? []).filter((b) => b.type === 'text').map((b) => b.text).join('').trim();
+    const text = (data.content ?? [])
+      .filter((b) => b.type === 'text')
+      .map((b) => b.text)
+      .join('')
+      .trim();
     if (!text) throw new Error('Empty response from model');
     return text;
   }

@@ -15,6 +15,8 @@ npm install
 cp .env.example .env      # then set JWT_SECRET to a long random string
 npm start                 # http://localhost:3000
 npm test                  # 40 integration tests
+npm run lint              # ESLint
+npm run format            # Prettier
 ```
 
 Requires Node.js 18+. The database file (`./data/app.db`) and upload folder (`./uploads`) are created automatically on first run.

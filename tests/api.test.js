@@ -48,7 +48,9 @@ describe('Task Tracker API', () => {
   describe('auth (stories 1, 2, 12)', () => {
     test('registers a user and never leaks the password hash', async () => {
       const res = await api('post', '/api/auth/register').send({
-        name: 'Alice', email: 'Alice@Example.com', password: PASSWORD,
+        name: 'Alice',
+        email: 'Alice@Example.com',
+        password: PASSWORD,
       });
       assert.equal(res.status, 201);
       assert.equal(res.body.user.email, 'alice@example.com'); // normalised
@@ -61,24 +63,45 @@ describe('Task Tracker API', () => {
     });
 
     test('rejects duplicate email, weak password and bad email', async () => {
-      const dup = await api('post', '/api/auth/register').send({ name: 'X', email: 'alice@example.com', password: PASSWORD });
+      const dup = await api('post', '/api/auth/register').send({
+        name: 'X',
+        email: 'alice@example.com',
+        password: PASSWORD,
+      });
       assert.equal(dup.status, 409);
 
-      const weak = await api('post', '/api/auth/register').send({ name: 'X', email: 'x@example.com', password: 'short' });
+      const weak = await api('post', '/api/auth/register').send({
+        name: 'X',
+        email: 'x@example.com',
+        password: 'short',
+      });
       assert.equal(weak.status, 400);
       assert.ok(weak.body.error.details.length >= 1);
 
-      const bad = await api('post', '/api/auth/register').send({ name: 'X', email: 'nope', password: PASSWORD });
+      const bad = await api('post', '/api/auth/register').send({
+        name: 'X',
+        email: 'nope',
+        password: PASSWORD,
+      });
       assert.equal(bad.status, 400);
     });
 
     test('logs in with correct credentials; wrong password and unknown email look identical', async () => {
-      const ok = await api('post', '/api/auth/login').send({ email: 'alice@example.com', password: PASSWORD });
+      const ok = await api('post', '/api/auth/login').send({
+        email: 'alice@example.com',
+        password: PASSWORD,
+      });
       assert.equal(ok.status, 200);
       assert.ok(ok.body.token);
 
-      const wrong = await api('post', '/api/auth/login').send({ email: 'alice@example.com', password: 'Wrong1234' });
-      const unknown = await api('post', '/api/auth/login').send({ email: 'ghost@example.com', password: PASSWORD });
+      const wrong = await api('post', '/api/auth/login').send({
+        email: 'alice@example.com',
+        password: 'Wrong1234',
+      });
+      const unknown = await api('post', '/api/auth/login').send({
+        email: 'ghost@example.com',
+        password: PASSWORD,
+      });
       assert.equal(wrong.status, 401);
       assert.equal(unknown.status, 401);
       assert.equal(wrong.body.error.message, unknown.body.error.message);
@@ -90,7 +113,10 @@ describe('Task Tracker API', () => {
     });
 
     test('logout revokes the token', async () => {
-      const login = await api('post', '/api/auth/login').send({ email: 'alice@example.com', password: PASSWORD });
+      const login = await api('post', '/api/auth/login').send({
+        email: 'alice@example.com',
+        password: PASSWORD,
+      });
       const { token } = login.body;
       assert.equal((await api('get', '/api/users/me', token)).status, 200);
       assert.equal((await api('post', '/api/auth/logout', token)).status, 204);
@@ -112,7 +138,10 @@ describe('Task Tracker API', () => {
       const me = await api('get', '/api/users/me', alice.token);
       assert.equal(me.body.user.name, 'Alice');
 
-      const upd = await api('patch', '/api/users/me', alice.token).send({ name: 'Alice A.', bio: 'Team lead' });
+      const upd = await api('patch', '/api/users/me', alice.token).send({
+        name: 'Alice A.',
+        bio: 'Team lead',
+      });
       assert.equal(upd.status, 200);
       assert.equal(upd.body.user.name, 'Alice A.');
       assert.equal(upd.body.user.bio, 'Team lead');
@@ -126,22 +155,37 @@ describe('Task Tracker API', () => {
     });
 
     test('changes password (old one stops working)', async () => {
-      const wrong = await api('put', '/api/users/me/password', carol.token)
-        .send({ current_password: 'Nope12345', new_password: 'NewPassw0rd' });
+      const wrong = await api('put', '/api/users/me/password', carol.token).send({
+        current_password: 'Nope12345',
+        new_password: 'NewPassw0rd',
+      });
       assert.equal(wrong.status, 401);
 
-      const ok = await api('put', '/api/users/me/password', carol.token)
-        .send({ current_password: PASSWORD, new_password: 'NewPassw0rd' });
+      const ok = await api('put', '/api/users/me/password', carol.token).send({
+        current_password: PASSWORD,
+        new_password: 'NewPassw0rd',
+      });
       assert.equal(ok.status, 204);
-      assert.equal((await api('post', '/api/auth/login').send({ email: 'carol@example.com', password: PASSWORD })).status, 401);
-      assert.equal((await api('post', '/api/auth/login').send({ email: 'carol@example.com', password: 'NewPassw0rd' })).status, 200);
+      assert.equal(
+        (await api('post', '/api/auth/login').send({ email: 'carol@example.com', password: PASSWORD }))
+          .status,
+        401
+      );
+      assert.equal(
+        (await api('post', '/api/auth/login').send({ email: 'carol@example.com', password: 'NewPassw0rd' }))
+          .status,
+        200
+      );
     });
   });
 
   // ----------------------------------------------------------------- Teams
   describe('teams & invitations (story 11)', () => {
     test('creator becomes owner; non-members cannot view', async () => {
-      const res = await api('post', '/api/teams', alice.token).send({ name: 'Apollo', description: 'Moon project' });
+      const res = await api('post', '/api/teams', alice.token).send({
+        name: 'Apollo',
+        description: 'Moon project',
+      });
       assert.equal(res.status, 201);
       assert.equal(res.body.team.role, 'owner');
       team = res.body.team;
@@ -153,12 +197,25 @@ describe('Task Tracker API', () => {
     });
 
     test('owner invites; only owner may invite; duplicates rejected', async () => {
-      const inv = await api('post', `/api/teams/${team.id}/invitations`, alice.token).send({ email: 'BOB@example.com' });
+      const inv = await api('post', `/api/teams/${team.id}/invitations`, alice.token).send({
+        email: 'BOB@example.com',
+      });
       assert.equal(inv.status, 201);
       assert.equal(inv.body.invitation.status, 'pending');
 
-      assert.equal((await api('post', `/api/teams/${team.id}/invitations`, alice.token).send({ email: 'bob@example.com' })).status, 409);
-      assert.equal((await api('post', `/api/teams/${team.id}/invitations`, carol.token).send({ email: 'x@example.com' })).status, 403);
+      assert.equal(
+        (
+          await api('post', `/api/teams/${team.id}/invitations`, alice.token).send({
+            email: 'bob@example.com',
+          })
+        ).status,
+        409
+      );
+      assert.equal(
+        (await api('post', `/api/teams/${team.id}/invitations`, carol.token).send({ email: 'x@example.com' }))
+          .status,
+        403
+      );
     });
 
     test('invitee is notified, sees the invitation and joins', async () => {
@@ -182,11 +239,20 @@ describe('Task Tracker API', () => {
     });
 
     test('declining works and an invitation can be re-sent', async () => {
-      await api('post', `/api/teams/${team.id}/invitations`, alice.token).send({ email: 'carol@example.com' });
+      await api('post', `/api/teams/${team.id}/invitations`, alice.token).send({
+        email: 'carol@example.com',
+      });
       const [inv] = (await api('get', '/api/invitations', carol.token)).body.invitations;
       assert.equal((await api('post', `/api/invitations/${inv.id}/decline`, carol.token)).status, 204);
       assert.equal((await api('get', '/api/invitations', carol.token)).body.invitations.length, 0);
-      assert.equal((await api('post', `/api/teams/${team.id}/invitations`, alice.token).send({ email: 'carol@example.com' })).status, 201);
+      assert.equal(
+        (
+          await api('post', `/api/teams/${team.id}/invitations`, alice.token).send({
+            email: 'carol@example.com',
+          })
+        ).status,
+        201
+      );
     });
   });
 
@@ -208,24 +274,47 @@ describe('Task Tracker API', () => {
       assert.equal(task.assignee.id, bob.id);
       assert.equal(task.creator.id, alice.id);
 
-      assert.ok((await notificationsFor(bob)).some((n) => n.type === 'task_assigned' && n.task_id === task.id));
+      assert.ok(
+        (await notificationsFor(bob)).some((n) => n.type === 'task_assigned' && n.task_id === task.id)
+      );
     });
 
     test('validates input and enforces team boundaries', async () => {
       const base = { team_id: team.id, title: 'T' };
       assert.equal((await api('post', '/api/tasks', alice.token).send({ ...base, title: '' })).status, 400);
-      assert.equal((await api('post', '/api/tasks', alice.token).send({ ...base, due_date: '2026-02-31' })).status, 400);
-      assert.equal((await api('post', '/api/tasks', alice.token).send({ ...base, due_date: 'tomorrow' })).status, 400);
-      assert.equal((await api('post', '/api/tasks', alice.token).send({ ...base, priority: 'urgent' })).status, 400);
+      assert.equal(
+        (await api('post', '/api/tasks', alice.token).send({ ...base, due_date: '2026-02-31' })).status,
+        400
+      );
+      assert.equal(
+        (await api('post', '/api/tasks', alice.token).send({ ...base, due_date: 'tomorrow' })).status,
+        400
+      );
+      assert.equal(
+        (await api('post', '/api/tasks', alice.token).send({ ...base, priority: 'urgent' })).status,
+        400
+      );
       // assignee outside the team
-      assert.equal((await api('post', '/api/tasks', alice.token).send({ ...base, assignee_id: carol.id })).status, 400);
+      assert.equal(
+        (await api('post', '/api/tasks', alice.token).send({ ...base, assignee_id: carol.id })).status,
+        400
+      );
       // outsider cannot create in the team
       assert.equal((await api('post', '/api/tasks', carol.token).send(base)).status, 403);
     });
 
     test('lists "my" tasks, filters by status, and isolates other users', async () => {
-      await api('post', '/api/tasks', alice.token).send({ team_id: team.id, title: 'Write docs', due_date: '2020-01-01', assignee_id: bob.id });
-      await api('post', '/api/tasks', alice.token).send({ team_id: team.id, title: 'Unassigned chore', status: 'in_progress' });
+      await api('post', '/api/tasks', alice.token).send({
+        team_id: team.id,
+        title: 'Write docs',
+        due_date: '2020-01-01',
+        assignee_id: bob.id,
+      });
+      await api('post', '/api/tasks', alice.token).send({
+        team_id: team.id,
+        title: 'Unassigned chore',
+        status: 'in_progress',
+      });
 
       const mine = await api('get', '/api/tasks?assignee=me', bob.token);
       assert.equal(mine.body.tasks.length, 2);
@@ -257,7 +346,10 @@ describe('Task Tracker API', () => {
 
     test('sorts (nulls last for due date), paginates, and finds overdue tasks', async () => {
       const asc = await api('get', '/api/tasks?sort_by=due_date&order=asc', alice.token);
-      assert.deepEqual(asc.body.tasks.map((t) => t.title), ['Write docs', 'Design landing page', 'Unassigned chore']);
+      assert.deepEqual(
+        asc.body.tasks.map((t) => t.title),
+        ['Write docs', 'Design landing page', 'Unassigned chore']
+      );
       const desc = await api('get', '/api/tasks?sort_by=due_date&order=desc', alice.token);
       assert.equal(desc.body.tasks.at(-1).title, 'Unassigned chore'); // still last
 
@@ -272,13 +364,20 @@ describe('Task Tracker API', () => {
       assert.equal(page2.body.pagination.total_pages, 2);
 
       const overdue = await api('get', '/api/tasks?overdue=true', alice.token);
-      assert.deepEqual(overdue.body.tasks.map((t) => t.title), ['Write docs']);
+      assert.deepEqual(
+        overdue.body.tasks.map((t) => t.title),
+        ['Write docs']
+      );
       const range = await api('get', '/api/tasks?due_before=2025-01-01', alice.token);
       assert.equal(range.body.tasks.length, 1);
     });
 
     test('SQL injection attempts in filters are inert', async () => {
-      const res = await api('get', `/api/tasks?q=${encodeURIComponent("'; DROP TABLE tasks; --")}`, alice.token);
+      const res = await api(
+        'get',
+        `/api/tasks?q=${encodeURIComponent("'; DROP TABLE tasks; --")}`,
+        alice.token
+      );
       assert.equal(res.status, 200);
       assert.equal(db.prepare('SELECT COUNT(*) n FROM tasks').get().n, 3);
     });
@@ -302,16 +401,24 @@ describe('Task Tracker API', () => {
     });
 
     test('updates fields; reassigns to another member and notifies them', async () => {
-      const upd = await api('patch', `/api/tasks/${task.id}`, alice.token).send({ title: 'Design new landing page', priority: 'low' });
+      const upd = await api('patch', `/api/tasks/${task.id}`, alice.token).send({
+        title: 'Design new landing page',
+        priority: 'low',
+      });
       assert.equal(upd.body.task.title, 'Design new landing page');
       assert.equal(upd.body.task.priority, 'low');
       assert.equal((await api('patch', `/api/tasks/${task.id}`, alice.token).send({})).status, 400);
 
       const re = await api('post', `/api/tasks/${task.id}/assign`, bob.token).send({ assignee_id: alice.id });
       assert.equal(re.body.task.assignee.id, alice.id);
-      assert.ok((await notificationsFor(alice)).some((n) => n.type === 'task_assigned' && n.task_id === task.id));
+      assert.ok(
+        (await notificationsFor(alice)).some((n) => n.type === 'task_assigned' && n.task_id === task.id)
+      );
 
-      assert.equal((await api('post', `/api/tasks/${task.id}/assign`, bob.token).send({ assignee_id: carol.id })).status, 400);
+      assert.equal(
+        (await api('post', `/api/tasks/${task.id}/assign`, bob.token).send({ assignee_id: carol.id })).status,
+        400
+      );
       const un = await api('post', `/api/tasks/${task.id}/assign`, bob.token).send({ assignee_id: null });
       assert.equal(un.body.task.assignee, null);
       await api('post', `/api/tasks/${task.id}/assign`, alice.token).send({ assignee_id: bob.id });
@@ -323,14 +430,22 @@ describe('Task Tracker API', () => {
     let comment;
 
     test('team members comment; assignee/creator are notified (not the author)', async () => {
-      const res = await api('post', `/api/tasks/${task.id}/comments`, alice.token).send({ body: 'Please use the new brand colors' });
+      const res = await api('post', `/api/tasks/${task.id}/comments`, alice.token).send({
+        body: 'Please use the new brand colors',
+      });
       assert.equal(res.status, 201);
       assert.equal(res.body.comment.author.id, alice.id);
       comment = res.body.comment;
 
       assert.ok((await notificationsFor(bob)).some((n) => n.type === 'comment_added'));
-      assert.equal((await api('post', `/api/tasks/${task.id}/comments`, alice.token).send({ body: '   ' })).status, 400);
-      assert.equal((await api('post', `/api/tasks/${task.id}/comments`, carol.token).send({ body: 'hi' })).status, 403);
+      assert.equal(
+        (await api('post', `/api/tasks/${task.id}/comments`, alice.token).send({ body: '   ' })).status,
+        400
+      );
+      assert.equal(
+        (await api('post', `/api/tasks/${task.id}/comments`, carol.token).send({ body: 'hi' })).status,
+        403
+      );
     });
 
     test('lists, edits (author only) and deletes (author or owner)', async () => {
@@ -339,14 +454,32 @@ describe('Task Tracker API', () => {
       assert.equal(list.body.comments.length, 2);
       assert.equal((await api('get', `/api/tasks/${task.id}`, bob.token)).body.task.comment_count, 2);
 
-      assert.equal((await api('patch', `/api/tasks/${task.id}/comments/${comment.id}`, bob.token).send({ body: 'hacked' })).status, 403);
-      const edit = await api('patch', `/api/tasks/${task.id}/comments/${comment.id}`, alice.token).send({ body: 'Use brand colors v2' });
+      assert.equal(
+        (
+          await api('patch', `/api/tasks/${task.id}/comments/${comment.id}`, bob.token).send({
+            body: 'hacked',
+          })
+        ).status,
+        403
+      );
+      const edit = await api('patch', `/api/tasks/${task.id}/comments/${comment.id}`, alice.token).send({
+        body: 'Use brand colors v2',
+      });
       assert.equal(edit.body.comment.body, 'Use brand colors v2');
 
       const bobComment = list.body.comments.find((c) => c.author.id === bob.id);
-      assert.equal((await api('delete', `/api/tasks/${task.id}/comments/${bobComment.id}`, alice.token)).status, 204); // owner
-      assert.equal((await api('delete', `/api/tasks/${task.id}/comments/${comment.id}`, bob.token)).status, 403);
-      assert.equal((await api('delete', `/api/tasks/${task.id}/comments/${comment.id}`, alice.token)).status, 204); // author
+      assert.equal(
+        (await api('delete', `/api/tasks/${task.id}/comments/${bobComment.id}`, alice.token)).status,
+        204
+      ); // owner
+      assert.equal(
+        (await api('delete', `/api/tasks/${task.id}/comments/${comment.id}`, bob.token)).status,
+        403
+      );
+      assert.equal(
+        (await api('delete', `/api/tasks/${task.id}/comments/${comment.id}`, alice.token)).status,
+        204
+      ); // author
     });
   });
 
@@ -357,16 +490,24 @@ describe('Task Tracker API', () => {
 
     test('uploads a file and downloads identical bytes', async () => {
       const content = Buffer.from('quarterly numbers\n'.repeat(50));
-      const res = await api('post', `/api/tasks/${task.id}/attachments`, bob.token).attach('file', content, 'report.txt');
+      const res = await api('post', `/api/tasks/${task.id}/attachments`, bob.token).attach(
+        'file',
+        content,
+        'report.txt'
+      );
       assert.equal(res.status, 201);
       attachment = res.body.attachment;
       assert.equal(attachment.filename, 'report.txt');
       assert.equal(attachment.size_bytes, content.length);
       assert.ok(!JSON.stringify(res.body).includes('stored_name')); // internals not exposed
 
-      const dl = await api('get', attachment.download_url, alice.token).buffer(true).parse((r, cb) => {
-        const chunks = []; r.on('data', (c) => chunks.push(c)); r.on('end', () => cb(null, Buffer.concat(chunks)));
-      });
+      const dl = await api('get', attachment.download_url, alice.token)
+        .buffer(true)
+        .parse((r, cb) => {
+          const chunks = [];
+          r.on('data', (c) => chunks.push(c));
+          r.on('end', () => cb(null, Buffer.concat(chunks)));
+        });
       assert.equal(dl.status, 200);
       assert.match(dl.headers['content-disposition'], /attachment/);
       assert.deepEqual(dl.body, content);
@@ -375,26 +516,47 @@ describe('Task Tracker API', () => {
 
     test('rejects blocked types, missing files and outsiders without writing to disk', async () => {
       const before = filesOnDisk();
-      const exe = await api('post', `/api/tasks/${task.id}/attachments`, bob.token).attach('file', Buffer.from('MZ'), 'virus.exe');
+      const exe = await api('post', `/api/tasks/${task.id}/attachments`, bob.token).attach(
+        'file',
+        Buffer.from('MZ'),
+        'virus.exe'
+      );
       assert.equal(exe.status, 400);
-      assert.equal((await api('post', `/api/tasks/${task.id}/attachments`, bob.token).field('x', 'y')).status, 400);
-      const outsider = await api('post', `/api/tasks/${task.id}/attachments`, carol.token).attach('file', Buffer.from('hi'), 'a.txt');
+      assert.equal(
+        (await api('post', `/api/tasks/${task.id}/attachments`, bob.token).field('x', 'y')).status,
+        400
+      );
+      const outsider = await api('post', `/api/tasks/${task.id}/attachments`, carol.token).attach(
+        'file',
+        Buffer.from('hi'),
+        'a.txt'
+      );
       assert.equal(outsider.status, 403);
       assert.equal(filesOnDisk(), before);
       assert.equal((await api('get', attachment.download_url, carol.token)).status, 403);
     });
 
     test('preserves non-ASCII filenames', async () => {
-      const res = await api('post', `/api/tasks/${task.id}/attachments`, bob.token).attach('file', Buffer.from('x'), 'résumé-日本語.pdf');
+      const res = await api('post', `/api/tasks/${task.id}/attachments`, bob.token).attach(
+        'file',
+        Buffer.from('x'),
+        'résumé-日本語.pdf'
+      );
       assert.equal(res.status, 201);
       assert.equal(res.body.attachment.filename, 'résumé-日本語.pdf');
       await api('delete', `/api/tasks/${task.id}/attachments/${res.body.attachment.id}`, bob.token);
     });
 
     test('path-traversal filenames are harmless', async () => {
-      const res = await api('post', `/api/tasks/${task.id}/attachments`, bob.token).attach('file', Buffer.from('x'), '../../etc/passwd.txt');
+      const res = await api('post', `/api/tasks/${task.id}/attachments`, bob.token).attach(
+        'file',
+        Buffer.from('x'),
+        '../../etc/passwd.txt'
+      );
       assert.equal(res.status, 201);
-      const stored = db.prepare('SELECT stored_name FROM attachments WHERE id = ?').get(res.body.attachment.id).stored_name;
+      const stored = db
+        .prepare('SELECT stored_name FROM attachments WHERE id = ?')
+        .get(res.body.attachment.id).stored_name;
       assert.match(stored, /^[0-9a-f-]{36}\.txt$/);
       await api('delete', `/api/tasks/${task.id}/attachments/${res.body.attachment.id}`, bob.token);
     });
@@ -402,8 +564,14 @@ describe('Task Tracker API', () => {
     test('lists attachments and deletes (uploader or owner) including the file', async () => {
       const list = await api('get', `/api/tasks/${task.id}/attachments`, alice.token);
       assert.equal(list.body.attachments.length, 1);
-      assert.equal((await api('delete', `/api/tasks/${task.id}/attachments/${attachment.id}`, carol.token)).status, 403);
-      assert.equal((await api('delete', `/api/tasks/${task.id}/attachments/${attachment.id}`, alice.token)).status, 204);
+      assert.equal(
+        (await api('delete', `/api/tasks/${task.id}/attachments/${attachment.id}`, carol.token)).status,
+        403
+      );
+      assert.equal(
+        (await api('delete', `/api/tasks/${task.id}/attachments/${attachment.id}`, alice.token)).status,
+        204
+      );
       await new Promise((r) => setTimeout(r, 50)); // fs.rm is fire-and-forget
       assert.equal(filesOnDisk(), 0);
       assert.equal((await api('get', attachment.download_url, alice.token)).status, 404);
@@ -437,16 +605,29 @@ describe('Task Tracker API', () => {
           assert.equal(res.statusCode, 200);
           assert.match(res.headers['content-type'], /text\/event-stream/);
           res.setEncoding('utf8');
-          res.on('data', (d) => { buffer += d; waiters.forEach((w) => w()); });
+          res.on('data', (d) => {
+            buffer += d;
+            waiters.forEach((w) => w());
+          });
           resolve(req);
         });
         req.on('error', reject);
       });
-      const waitFor = (text) => new Promise((ok, fail) => {
-        const timer = setTimeout(() => fail(new Error(`timed out waiting for "${text}"; got:\n${buffer}`)), 3000);
-        const check = () => { if (buffer.includes(text)) { clearTimeout(timer); ok(); } };
-        waiters.push(check); check();
-      });
+      const waitFor = (text) =>
+        new Promise((ok, fail) => {
+          const timer = setTimeout(
+            () => fail(new Error(`timed out waiting for "${text}"; got:\n${buffer}`)),
+            3000
+          );
+          const check = () => {
+            if (buffer.includes(text)) {
+              clearTimeout(timer);
+              ok();
+            }
+          };
+          waiters.push(check);
+          check();
+        });
 
       try {
         await waitFor('event: connected');
@@ -473,10 +654,14 @@ describe('Task Tracker API', () => {
   // -------------------------------------------------------------------- AI
   describe('AI assistance (story 14)', () => {
     const build = (ai) => createApp({ db, ai }).app;
-    const asApp = (a) => (method, url, token) => request(a)[method](url).set('Authorization', `Bearer ${token}`);
+    const asApp = (a) => (method, url, token) =>
+      request(a)[method](url).set('Authorization', `Bearer ${token}`);
 
     test('falls back to a template when no API key is configured', async () => {
-      const res = await api('post', '/api/ai/description', alice.token).send({ title: 'Migrate database', notes: 'Postgres 16' });
+      const res = await api('post', '/api/ai/description', alice.token).send({
+        title: 'Migrate database',
+        notes: 'Postgres 16',
+      });
       assert.equal(res.status, 200);
       assert.equal(res.body.source, 'template');
       assert.match(res.body.description, /Migrate database/);
@@ -490,7 +675,9 @@ describe('Task Tracker API', () => {
         captured = { url, init, body: JSON.parse(init.body) };
         return { ok: true, json: async () => ({ content: [{ type: 'text', text: 'Generated by model' }] }) };
       };
-      const aiApp = asApp(build(createAiService({ apiKey: 'sk-test', model: 'claude-haiku-5-5', fetchImpl: fakeFetch })));
+      const aiApp = asApp(
+        build(createAiService({ apiKey: 'sk-test', model: 'claude-haiku-5-5', fetchImpl: fakeFetch }))
+      );
 
       const res = await aiApp('post', '/api/ai/description', alice.token).send({ title: 'Plan offsite' });
       assert.equal(res.body.source, 'ai');
@@ -503,14 +690,18 @@ describe('Task Tracker API', () => {
 
     test('degrades gracefully when the upstream API fails', async () => {
       const failing = async () => ({ ok: false, status: 500 });
-      const aiApp = asApp(build(createAiService({ apiKey: 'sk-test', model: 'm', fetchImpl: failing, logger: {} })));
+      const aiApp = asApp(
+        build(createAiService({ apiKey: 'sk-test', model: 'm', fetchImpl: failing, logger: {} }))
+      );
       const res = await aiApp('post', '/api/ai/description', alice.token).send({ title: 'Plan offsite' });
       assert.equal(res.status, 200);
       assert.equal(res.body.source, 'template');
     });
 
     test('summarises a task with its comments; respects team access', async () => {
-      await api('post', `/api/tasks/${task.id}/comments`, bob.token).send({ body: 'Draft is ready for review' });
+      await api('post', `/api/tasks/${task.id}/comments`, bob.token).send({
+        body: 'Draft is ready for review',
+      });
       const res = await api('post', `/api/ai/tasks/${task.id}/summary`, alice.token);
       assert.equal(res.status, 200);
       assert.match(res.body.summary, /Design new landing page/);
@@ -522,7 +713,10 @@ describe('Task Tracker API', () => {
   // ------------------------------------------------- Membership & deletion
   describe('membership changes and deletion', () => {
     test('removing a member unassigns their tasks; the owner cannot be removed', async () => {
-      assert.equal((await api('delete', `/api/teams/${team.id}/members/${alice.id}`, alice.token)).status, 400);
+      assert.equal(
+        (await api('delete', `/api/teams/${team.id}/members/${alice.id}`, alice.token)).status,
+        400
+      );
       assert.equal((await api('delete', `/api/teams/${team.id}/members/${bob.id}`, carol.token)).status, 403);
 
       const removed = await api('delete', `/api/teams/${team.id}/members/${bob.id}`, alice.token);
@@ -543,7 +737,9 @@ describe('Task Tracker API', () => {
       const [inv] = (await api('get', '/api/invitations', bob.token)).body.invitations;
       await api('post', `/api/invitations/${inv.id}/accept`, bob.token);
 
-      const bobTask = (await api('post', '/api/tasks', bob.token).send({ team_id: team.id, title: 'Bob task' })).body.task;
+      const bobTask = (
+        await api('post', '/api/tasks', bob.token).send({ team_id: team.id, title: 'Bob task' })
+      ).body.task;
       await api('post', `/api/tasks/${bobTask.id}/comments`, bob.token).send({ body: 'note' });
       assert.equal((await api('delete', `/api/tasks/${task.id}`, bob.token)).status, 403); // not creator, not owner
       assert.equal((await api('delete', `/api/tasks/${bobTask.id}`, alice.token)).status, 204); // owner
@@ -565,7 +761,9 @@ describe('Task Tracker API', () => {
   // ------------------------------------------------------------ Misc / HTTP
   describe('error handling', () => {
     test('malformed JSON, unknown routes and health check', async () => {
-      const bad = await api('post', '/api/auth/login').set('Content-Type', 'application/json').send('{not json');
+      const bad = await api('post', '/api/auth/login')
+        .set('Content-Type', 'application/json')
+        .send('{not json');
       assert.equal(bad.status, 400);
       assert.equal(bad.body.error.message, 'Malformed JSON body');
 

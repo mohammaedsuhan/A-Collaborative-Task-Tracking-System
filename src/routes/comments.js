@@ -67,10 +67,9 @@ function createCommentsRouter(db, authenticate, access, notifier) {
     const existing = findComment(taskId, commentId);
     if (existing.author_id !== req.user.id) throw forbidden('You can only edit your own comments');
 
-    db.prepare("UPDATE comments SET body = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now') WHERE id = ?").run(
-      req.valid.body.body,
-      commentId
-    );
+    db.prepare(
+      "UPDATE comments SET body = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now') WHERE id = ?"
+    ).run(req.valid.body.body, commentId);
     res.json({ comment: present(findComment(taskId, commentId)) });
   });
 

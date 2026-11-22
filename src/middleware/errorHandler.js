@@ -8,7 +8,7 @@ function notFoundHandler(req, _res, next) {
   next(new HttpError(404, `Route not found: ${req.method} ${req.originalUrl}`));
 }
 
-// eslint-disable-next-line no-unused-vars
+// Express identifies error handlers by their 4-argument signature, so `_next` must stay.
 function errorHandler(err, req, res, _next) {
   let status = 500;
   let message = 'Internal server error';

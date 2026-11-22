@@ -1,0 +1,42 @@
+{
+  "name": "task-tracker-api",
+  "version": "1.0.0",
+  "description": "Backend REST API for a collaborative task tracking and management application",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "test": "node --test tests/*.test.js",
+    "lint": "eslint .",
+    "format": "prettier --write \"src/**/*.js\" \"tests/**/*.js\""
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "tasks",
+    "express",
+    "sqlite",
+    "jwt",
+    "rest-api"
+  ],
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "better-sqlite3": "^13.2.0",
+    "cors": "^2.8.6",
+    "dotenv": "^18.0.10",
+    "express": "^5.3.0",
+    "express-rate-limit": "^8.7.5",
+    "helmet": "^8.3.0",
+    "jsonwebtoken": "^9.0.3",
+    "multer": "^2.5.0",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.15.0",
+    "globals": "^17.14.0",
+    "prettier": "^3.10.1",
+    "supertest": "^7.3.2"
+  }
+}
